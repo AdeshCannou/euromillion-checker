@@ -1,6 +1,8 @@
 // ---- Config ----------------------------------------------------------
-// Adresse du backend Flask (voir /backend). En dev local par défaut.
-const API_URL = "http://localhost:5000/api/latest-draw";
+// Chemin relatif : le frontend est servi par le même Flask que l'API,
+// donc pas besoin d'URL absolue (fonctionne en local, sur le Pi, et
+// depuis le téléphone via Tailscale sans rien changer).
+const API_URL = "/api/latest-draw";
 
 // ---- Helpers -----------------------------------------------------------
 function getVals(id) {

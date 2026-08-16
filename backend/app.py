@@ -33,11 +33,18 @@ from pathlib import Path
 
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__)
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+
+app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path="")
 CORS(app)
+
+
+@app.route("/")
+def index():
+    return send_from_directory(app.static_folder, "index.html")
 
 FDJ_HISTORIQUE_PAGE = "https://www.fdj.fr/jeux-de-tirage/euromillions-my-million/historique"
 ZIP_URL_PATTERN = re.compile(
@@ -302,4 +309,4 @@ def clear_scores():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=False)

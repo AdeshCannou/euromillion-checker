@@ -1,4 +1,5 @@
-venv
-logs
-__pycache__/
-.vscode/
+backend/venv/
+backend/__pycache__/
+backend/logs/
+*.pyc
+.DS_Store

@@ -108,3 +108,48 @@ l'analyser avec n'importe quel outil ligne par ligne.
 - Ce projet suppose un usage local / réseau de confiance (pas
   d'authentification sur l'API). Pour un déploiement public, ajoute une
   limite de débit (rate limiting) sur `/api/latest-draw`.
+
+## Déployer sur le Raspberry Pi (accès permanent, y compris depuis le tel)
+
+Même principe que pour PSG : un service systemd, accès à distance via
+Tailscale (pas de port forwarding nécessaire avec le CGNAT SFR).
+
+Différence avec PSG : ici un seul service suffit, car Flask sert
+directement les fichiers du frontend (`frontend/index.html`,
+`style.css`, `app.js`) en plus de l'API — pas besoin d'un second
+service ni d'un reverse proxy.
+
+```bash
+# Sur le Pi
+git clone <url-de-ton-repo> euromillions-checker
+cd euromillions-checker/backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Test manuel avant de passer en service
+waitress-serve --host=0.0.0.0 --port=5000 app:app
+# -> depuis un autre appareil sur le même réseau (ou via Tailscale) :
+#    http://<ip-du-pi>:5000
+```
+
+Si l'accès manuel fonctionne, installe le service (`deploy/euromillions.service` est déjà prêt, adapte juste le `User=` et les chemins si ton repo n'est pas dans `/home/pi/`) :
+
+```bash
+sudo cp deploy/euromillions.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now euromillions.service
+
+# Vérifier que ça tourne
+sudo systemctl status euromillions
+journalctl -u euromillions -f
+```
+
+Ensuite, depuis ton téléphone (avec Tailscale installé et connecté au
+même tailnet que le Pi) : `http://<ip-tailscale-du-pi>:5000`.
+
+**Note sur `backend/logs/scores.jsonl`** : ce fichier vit sur le Pi une
+fois déployé — c'est lui la source de vérité pour ton historique de
+scores, pas ton poste de dev local. Le `.gitignore` fourni exclut déjà
+`backend/logs/` du repo Git, pour ne pas committer tes scores ni
+écraser ceux du Pi à chaque `git pull`.
