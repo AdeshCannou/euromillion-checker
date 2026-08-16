@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grille vs Tirage — Score de proximité EuroMillions</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Score de proximité</div>
+    <h1>Grille vs Tirage</h1>
+    <p class="sub">Entrez votre grille, récupérez le dernier tirage officiel en un clic (ou entrez-le à la main), et obtenez un score de 0 à 100 qui mesure à quel point vos numéros sont <em>proches</em> du tirage.</p>
+  </header>
+
+  <div class="layout">
+  <div class="main-col">
+
+  <div class="panels">
+    <div class="panel">
+      <h2>🎟️ Ma grille</h2>
+      <p class="hint">5 numéros (1–50) + 2 étoiles (1–12)</p>
+      <div class="row-label">Numéros</div>
+      <div class="balls" id="mine-main">
+        <div class="ball main"><input type="number" min="1" max="50" maxlength="2"></div>
+        <div class="ball main"><input type="number" min="1" max="50" maxlength="2"></div>
+        <div class="ball main"><input type="number" min="1" max="50" maxlength="2"></div>
+        <div class="ball main"><input type="number" min="1" max="50" maxlength="2"></div>
+        <div class="ball main"><input type="number" min="1" max="50" maxlength="2"></div>
+      </div>
+      <div class="row-label">Étoiles</div>
+      <div class="balls" id="mine-star">
+        <div class="ball star"><input type="number" min="1" max="12" maxlength="2"></div>
+        <div class="ball star"><input type="number" min="1" max="12" maxlength="2"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header-row">
+        <div>
+          <h2>🎯 Tirage officiel</h2>
+          <p class="hint">Récupéré automatiquement, ou saisi à la main</p>
+        </div>
+      </div>
+
+      <button class="fetch-btn" id="fetch-btn">
+        <span class="fetch-icon">↻</span> Récupérer le dernier tirage officiel
+      </button>
+
+      <div class="date-lookup">
+        <input type="date" id="date-input" min="2004-02-01">
+        <button class="fetch-btn fetch-btn-secondary" id="fetch-date-btn">Récupérer ce tirage</button>
+      </div>
+
+      <p class="fetch-status" id="fetch-status"></p>
+
+      <div class="row-label">Numéros</div>
+      <div class="balls" id="draw-main">
+        <div class="ball main"><input type="number" min="1" max="50" maxlength="2"></div>
+        <div class="ball main"><input type="number" min="1" max="50" maxlength="2"></div>
+        <div class="ball main"><input type="number" min="1" max="50" maxlength="2"></div>
+        <div class="ball main"><input type="number" min="1" max="50" maxlength="2"></div>
+        <div class="ball main"><input type="number" min="1" max="50" maxlength="2"></div>
+      </div>
+      <div class="row-label">Étoiles</div>
+      <div class="balls" id="draw-star">
+        <div class="ball star"><input type="number" min="1" max="12" maxlength="2"></div>
+        <div class="ball star"><input type="number" min="1" max="12" maxlength="2"></div>
+      </div>
+    </div>
+  </div>
+
+  <button class="calc-btn" id="calc-btn">Calculer mon score</button>
+
+  <div id="result">
+    <div class="score-top">
+      <div class="gauge">
+        <svg width="128" height="128" viewBox="0 0 128 128">
+          <circle cx="64" cy="64" r="56" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="10"/>
+          <circle id="gauge-arc" cx="64" cy="64" r="56" fill="none" stroke="url(#grad)" stroke-width="10"
+                   stroke-linecap="round" stroke-dasharray="351.86" stroke-dashoffset="351.86"/>
+          <defs>
+            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#D4AF37"/>
+              <stop offset="100%" stop-color="#7C6FFF"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="gauge-num">
+          <div class="val" id="score-val">0</div>
+          <div class="lbl">/ 100</div>
+        </div>
+      </div>
+      <div class="score-text">
+        <h3 id="score-title">—</h3>
+        <p id="score-desc">Le score combine la proximité des numéros (80%) et des étoiles (20%).</p>
+      </div>
+    </div>
+
+    <div class="breakdown">
+      <div class="stat">
+        <div class="k">Numéros exacts</div>
+        <div class="v" id="exact-main">0 / 5</div>
+      </div>
+      <div class="stat">
+        <div class="k">Étoiles exactes</div>
+        <div class="v" id="exact-star">0 / 2</div>
+      </div>
+    </div>
+
+    <div class="pairs">
+      <div class="row-label">Détail numéros (apparié au plus proche)</div>
+      <div id="pairs-main"></div>
+      <div class="row-label" style="margin-top:14px;">Détail étoiles</div>
+      <div id="pairs-star"></div>
+    </div>
+  </div>
+
+  <footer>
+    Outil de proximité, pas de prédiction — chaque tirage EuroMillions reste totalement indépendant et aléatoire.
+  </footer>
+  </div>
+
+  <aside class="sidebar">
+    <h2>📊 Historique</h2>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="k">Dernier score</div>
+        <div class="v" id="stat-last">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="k">Meilleur score</div>
+        <div class="v" id="stat-best">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="k">Pire score</div>
+        <div class="v" id="stat-worst">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="k">Moyenne</div>
+        <div class="v" id="stat-avg">—</div>
+      </div>
+      <div class="stat-box">
+        <div class="k">Grilles jouées</div>
+        <div class="v" id="stat-count">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="k">Meilleur alignement</div>
+        <div class="v" id="stat-best-align">—</div>
+      </div>
+    </div>
+
+    <div class="sparkline-wrap">
+      <div class="row-label">Évolution</div>
+      <svg id="sparkline" viewBox="0 0 260 60" preserveAspectRatio="none"></svg>
+    </div>
+
+    <div class="history-list-wrap">
+      <div class="row-label">Grilles récentes</div>
+      <div id="history-list"></div>
+    </div>
+
+    <button class="clear-btn" id="clear-history-btn">Effacer l'historique</button>
+  </aside>
+  </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
