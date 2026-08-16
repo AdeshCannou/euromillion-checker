@@ -41,6 +41,33 @@ clampContainer("mine-star", 1, 12);
 clampContainer("draw-main", 1, 50);
 clampContainer("draw-star", 1, 12);
 
+// Marque visuellement les doublons dans un groupe de balles (numéros ou
+// étoiles répétés — impossible dans un vrai tirage EuroMillions).
+function highlightDuplicates(id) {
+  const inputs = [...document.querySelectorAll("#" + id + " input")];
+  const counts = {};
+  inputs.forEach((input) => {
+    const v = input.value.trim();
+    if (v === "") return;
+    counts[v] = (counts[v] || 0) + 1;
+  });
+  inputs.forEach((input) => {
+    const v = input.value.trim();
+    input.closest(".ball").classList.toggle("duplicate", v !== "" && counts[v] > 1);
+  });
+}
+
+function hasDuplicates(id) {
+  const vals = getVals(id);
+  return new Set(vals).size !== vals.length;
+}
+
+["mine-main", "mine-star", "draw-main", "draw-star"].forEach((id) => {
+  document.querySelectorAll("#" + id + " input").forEach((input) => {
+    input.addEventListener("input", () => highlightDuplicates(id));
+  });
+});
+
 // Appariement optimal (distance totale minimale) par permutations —
 // suffisant pour n=5 (120 permutations) et n=2 (2 permutations).
 function permutations(arr) {
@@ -276,6 +303,16 @@ function computeScore() {
 
   if (myMain.length !== 5 || myStar.length !== 2 || drMain.length !== 5 || drStar.length !== 2) {
     alert("Merci de remplir les 5 numéros et 2 étoiles pour votre grille ET le tirage.");
+    return;
+  }
+
+  if (
+    hasDuplicates("mine-main") ||
+    hasDuplicates("mine-star") ||
+    hasDuplicates("draw-main") ||
+    hasDuplicates("draw-star")
+  ) {
+    alert("Un même numéro ou une même étoile ne peut pas apparaître deux fois dans une grille.");
     return;
   }
 
