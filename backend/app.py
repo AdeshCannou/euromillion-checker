@@ -147,11 +147,13 @@ def discover_periods() -> list:
     return FALLBACK_PERIODS
 
 
-def find_period_for_date(target: date, periods: list):
-    for period in periods:
-        if period["start"] <= target <= period["end"]:
-            return period
-    return None
+def find_periods_for_date(target: date, periods: list) -> list:
+    """Retourne toutes les périodes dont l'intervalle contient la date
+    cible. Les bornes FDJ sont au mois près (pas au jour près), donc le
+    mois de transition entre deux périodes consécutives est couvert par
+    les deux — on doit essayer chaque candidate plutôt que de s'arrêter
+    à la première, sous peine de rater un tirage réel."""
+    return [p for p in periods if p["start"] <= target <= p["end"]]
 
 
 def get_period_rows(zip_url: str) -> list:
@@ -185,13 +187,36 @@ def get_period_rows(zip_url: str) -> list:
     return rows
 
 
+# FDJ n'utilise pas le même format de date sur toutes les périodes
+# d'archive : "14/08/2026" sur les CSV récents, mais "20110506"
+# (AAAAMMJJ, sans séparateur) sur l'archive 2004-2011. On essaie les
+# formats connus dans l'ordre plutôt que de supposer un seul format.
+DATE_FORMATS = ("%d/%m/%Y", "%Y%m%d", "%d-%m-%Y")
+
+
+def parse_fdj_date(raw: str):
+    """Parse une date FDJ quel que soit son format d'origine. Retourne
+    un objet date, ou None si aucun format connu ne correspond."""
+    raw = (raw or "").strip()
+    for fmt in DATE_FORMATS:
+        try:
+            return datetime.strptime(raw, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
 def parse_draw_row(normalized: dict) -> dict:
     """Extrait date, numéros et étoiles d'une ligne déjà normalisée
     (clés en minuscules). Ne dépend pas d'un nom de colonne exact,
     seulement de motifs ('date', 'boule', 'etoile') puisque FDJ a fait
-    varier les en-têtes selon les périodes."""
+    varier les en-têtes selon les périodes. La date est toujours
+    renvoyée normalisée en JJ/MM/AAAA, quel que soit son format
+    d'origine dans le CSV source."""
     date_key = next((k for k in normalized if "date" in k), None)
-    draw_date = normalized.get(date_key, "") if date_key else ""
+    raw_date = normalized.get(date_key, "") if date_key else ""
+    parsed_date = parse_fdj_date(raw_date)
+    draw_date = parsed_date.strftime("%d/%m/%Y") if parsed_date else raw_date
 
     main_keys = sorted(k for k in normalized if "boule" in k)
     star_keys = sorted(k for k in normalized if "etoile" in k)
@@ -239,15 +264,21 @@ def draw_by_date():
                 "error": f"Aucun historique disponible avant le {oldest_start.strftime('%d/%m/%Y')}."
             }), 404
 
-        period = find_period_for_date(target, periods)
-        if not period:
+        candidate_periods = find_periods_for_date(target, periods)
+        if not candidate_periods:
             return jsonify({"error": "Aucune période d'archive ne couvre cette date."}), 404
 
-        rows = get_period_rows(period["url"])
-        match = next(
-            (r for r in rows if r.get(next((k for k in r if "date" in k), ""), "") == date_str),
-            None,
-        )
+        match = None
+        for period in candidate_periods:
+            rows = get_period_rows(period["url"])
+            for row in rows:
+                date_key = next((k for k in row if "date" in k), None)
+                if date_key and parse_fdj_date(row.get(date_key, "")) == target:
+                    match = row
+                    break
+            if match:
+                break
+
         if not match:
             return jsonify({
                 "error": "Aucun tirage à cette date (les tirages ont lieu le mardi et le vendredi)."
