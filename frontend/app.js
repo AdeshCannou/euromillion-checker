@@ -82,7 +82,11 @@ function permutations(arr) {
   return result;
 }
 
-function bestPairing(picked, drawn) {
+// Appariement par distance minimale, sur les valeurs fournies (utilisé
+// uniquement sur les valeurs SANS correspondance exacte — voir bestPairing
+// ci-dessous). Brute-force par permutations : suffisant pour n≤5.
+function bestPairingByDistance(picked, drawn) {
+  if (picked.length === 0) return [];
   let best = null;
   let bestDist = Infinity;
   for (const perm of permutations(drawn)) {
@@ -94,6 +98,40 @@ function bestPairing(picked, drawn) {
     }
   }
   return best;
+}
+
+// Appariement final : les valeurs identiques sont TOUJOURS appariées
+// entre elles en premier (distance 0 garantie), avant d'optimiser la
+// distance sur ce qu'il reste. Sans cette étape, une valeur exacte peut
+// se retrouver mal appariée si un autre appariement atteint la même
+// distance totale sans faire ressortir la correspondance exacte — ce qui
+// donnait des résultats contre-intuitifs (ex: un "10" présent dans les
+// deux grilles mais pas relié entre eux).
+function bestPairing(picked, drawn) {
+  const result = new Array(picked.length).fill(null);
+  const usedDrawnIdx = new Set();
+
+  picked.forEach((p, i) => {
+    const idx = drawn.findIndex((d, di) => d === p && !usedDrawnIdx.has(di));
+    if (idx !== -1) {
+      result[i] = drawn[idx];
+      usedDrawnIdx.add(idx);
+    }
+  });
+
+  const remainingPickedIdx = picked.map((_, i) => i).filter((i) => result[i] === null);
+  const remainingDrawnIdx = drawn.map((_, i) => i).filter((i) => !usedDrawnIdx.has(i));
+
+  if (remainingPickedIdx.length > 0) {
+    const remPicked = remainingPickedIdx.map((i) => picked[i]);
+    const remDrawn = remainingDrawnIdx.map((i) => drawn[i]);
+    const bestRest = bestPairingByDistance(remPicked, remDrawn);
+    remainingPickedIdx.forEach((origIdx, k) => {
+      result[origIdx] = bestRest[k];
+    });
+  }
+
+  return result;
 }
 
 // ---- Fetch du dernier tirage officiel / d'un tirage à une date donnée ---
